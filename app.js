@@ -13,6 +13,7 @@
   let ffmpegLoading = false;
   let processing = false;
   let fontReady = false;
+  let currentProgressLabel = "Processando…";
 
   const CORE_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js";
   const WASM_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm";
@@ -62,8 +63,16 @@
           console.warn("FFmpeg:", message);
         }
       });
-      ffmpeg.on("progress", ({ ratio } = {}) => {
-        if (Number.isFinite(ratio)) setProgressProgress(Math.max(0, Math.min(1, ratio)));
+      ffmpeg.on("progress", ({ ratio, time, duration } = {}) => {
+        let r = Number(ratio);
+        const t = Number(time);
+        const d = Number(duration);
+        if ((!Number.isFinite(r) || r <= 0) && Number.isFinite(t) && d > 0) r = t / d;
+        if (Number.isFinite(r)) {
+          r = Math.max(0, Math.min(1, r));
+          const label = currentProgressLabel || "Processando…";
+          setProgressProgress(r, label);
+        }
       });
 
       await ffmpeg.load({ coreURL: CORE_URL, wasmURL: WASM_URL });
@@ -214,6 +223,23 @@
 
   async function fsDelete(name) { try { await ffmpeg.deleteFile(name); } catch {} }
 
+  function getVideoDuration(file) {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.muted = true;
+      const done = (value) => {
+        try { URL.revokeObjectURL(url); } catch {}
+        v.remove();
+        resolve(Number.isFinite(value) && value > 0 ? value : 0);
+      };
+      v.onloadedmetadata = () => done(v.duration);
+      v.onerror = () => done(0);
+      v.src = url;
+    });
+  }
+
   async function processOne(file, idx, engine) {
     const id = `${Date.now()}_${idx}`;
     const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
@@ -222,7 +248,9 @@
     let logoName = null;
 
     try {
-      setProgress(`Carregando ${file.name}…`);
+      currentProgressLabel = `Vídeo ${idx + 1}/${selected.length}: carregando…`;
+      setProgressProgress(0, currentProgressLabel);
+      const duration = await getVideoDuration(file);
       await engine.writeFile(input, new Uint8Array(await file.arrayBuffer()));
 
       if (logoFile) {
@@ -287,8 +315,10 @@
       if (speed) args.push("-af", "atempo=1.03,aresample=async=1:first_pts=0");
       args.push("-movflags", "+faststart", "-shortest", output);
 
-      setProgressProgress(0, `Vídeo ${idx + 1}/${selected.length}: processando…`);
-      const exitCode = await engine.exec(args);
+      currentProgressLabel = `Vídeo ${idx + 1}/${selected.length}: processando…`;
+      setProgressProgress(0, currentProgressLabel);
+      const exitCode = await engine.exec(args, -1, duration);
+      setProgressProgress(1, `Vídeo ${idx + 1}/${selected.length}: finalizando…`);
       if (exitCode !== 0) throw new Error(`FFmpeg terminou com código ${exitCode}.`);
       const data = await engine.readFile(output);
       return new Blob([data.buffer], { type: "video/mp4" });
@@ -312,6 +342,7 @@
         const blob = await processOne(selected[i], i, engine);
         const url = URL.createObjectURL(blob);
         const name = safeName(selected[i].name);
+        setProgress(`Vídeo ${i + 1}/${selected.length}: preparando download…`);
         // Inicia o download imediatamente. Não abre o MP4 no navegador.
         const link = document.createElement("a");
         link.href = url;
@@ -321,6 +352,7 @@
         document.body.appendChild(link);
         link.click();
         link.remove();
+        setProgress(`Vídeo ${i + 1}/${selected.length}: download iniciado.`, "ok");
 
         // Mantém apenas um fallback caso o Chrome bloqueie o download automático.
         const div = document.createElement("div");

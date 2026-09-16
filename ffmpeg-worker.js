@@ -59,6 +59,22 @@ self.onmessage = async (event) => {
       case TYPES.EXEC:
         if (!core) throw new Error("FFmpeg não foi carregado.");
         core.setTimeout(data.timeout ?? -1);
+        // Mantém a duração do vídeo no evento de progresso para a interface
+        // poder calcular uma porcentagem confiável mesmo quando o core não
+        // fornece ratio diretamente.
+        const originalProgress = core.setProgress;
+        if (typeof originalProgress === "function") {
+          core.setProgress(progress => {
+            const raw = progress || {};
+            const time = Number(raw.time);
+            const duration = Number(data.duration);
+            let ratio = Number(raw.ratio);
+            if (!Number.isFinite(ratio) || ratio <= 0) {
+              if (Number.isFinite(time) && duration > 0) ratio = time / duration;
+            }
+            self.postMessage({ type: TYPES.PROGRESS, data: { ...raw, time, duration, ratio } });
+          });
+        }
         core.exec(...data.args);
         result = core.ret;
         core.reset();

@@ -23,7 +23,7 @@
 
     _ensureWorker() {
       if (this.worker) return;
-      this.worker = new Worker(`ffmpeg-worker.js?v=20260916-07`);
+      this.worker = new Worker(`ffmpeg-worker.js?v=20260916-08`);
       this.worker.onmessage = (event) => {
         const { id, type, data } = event.data || {};
         if (type === "LOG") {
@@ -84,8 +84,8 @@
       return this._send("DELETE_FILE", { path });
     }
 
-    exec(args, timeout = -1) {
-      return this._send("EXEC", { args, timeout });
+    exec(args, timeout = -1, duration = 0) {
+      return this._send("EXEC", { args, timeout, duration });
     }
 
     terminate() {
