@@ -25,11 +25,19 @@
 
   function setProgress(text, cls = "") {
     const el = $("progress");
+    el.className = "progress";
     const content = cls === "error" ? `<span class="error">${esc(text)}</span>`
       : cls === "ok" ? `<span class="ok">${esc(text)}</span>`
       : cls === "warn" ? `<span class="warn">${esc(text)}</span>`
       : esc(text);
     el.innerHTML = content;
+  }
+
+  function setProgressProgress(ratio, label = "Processando…") {
+    const el = $("progress");
+    const pct = Math.round(Math.max(0, Math.min(1, Number(ratio) || 0)) * 100);
+    el.className = "progress progress-bar-wrap";
+    el.innerHTML = `<div class="progress-label"><span>${esc(label)}</span><strong>${pct}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`;
   }
 
   async function loadFFmpeg() {
@@ -47,11 +55,15 @@
       if (!window.FFmpegLocal) throw new Error("O módulo local do FFmpeg não foi carregado.");
 
       ffmpeg = new window.FFmpegLocal();
+      // Os logs do FFmpeg (frame/fps/time/speed) não ocupam mais a área de progresso.
+      // A interface usa somente a barra de progresso baseada no avanço real do FFmpeg.
       ffmpeg.on("log", ({ message } = {}) => {
-        if (message && /frame=|time=|speed=|Output|Input|Error/i.test(message)) setProgress(message);
+        if (message && /Error|error|failed|invalid/i.test(message)) {
+          console.warn("FFmpeg:", message);
+        }
       });
       ffmpeg.on("progress", ({ ratio } = {}) => {
-        if (Number.isFinite(ratio)) setProgress(`Processando… ${Math.round(Math.max(0, Math.min(1, ratio)) * 100)}%`);
+        if (Number.isFinite(ratio)) setProgressProgress(Math.max(0, Math.min(1, ratio)));
       });
 
       await ffmpeg.load({ coreURL: CORE_URL, wasmURL: WASM_URL });
@@ -227,9 +239,11 @@
       const headline = $("headline").value.trim();
       const handle = $("showHandle").checked ? $("handle").value.trim() : "";
 
+      // O desfoque é calculado em baixa resolução e só depois ampliado.
+      // Isso reduz bastante o trabalho do FFmpeg no celular sem alterar o enquadramento final.
       const bg = bgMode === "black"
         ? "color=c=black:s=1080x1920:r=30[bg0]"
-        : "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=22[bg0]";
+        : "[0:v]scale=360:640:force_original_aspect_ratio=increase,crop=360:640,gblur=sigma=7,scale=1080:1920:flags=bilinear[bg0]";
       const speedVideo = speed ? "setpts=PTS/1.03," : "";
       const mirrorFilter = mirror ? "hflip," : "";
       const sharpFilter = sharpen ? "unsharp=5:5:0.35:5:5:0," : "";
@@ -264,7 +278,8 @@
         "-map", "0:a?",
         "-c:v", "libx264",
         "-preset", "ultrafast",
-        "-crf", "28",
+        "-crf", "30",
+        "-r", "30",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
         "-b:a", "128k"
@@ -272,7 +287,7 @@
       if (speed) args.push("-af", "atempo=1.03,aresample=async=1:first_pts=0");
       args.push("-movflags", "+faststart", "-shortest", output);
 
-      setProgress(`Vídeo ${idx + 1}/${selected.length}: processando…`);
+      setProgressProgress(0, `Vídeo ${idx + 1}/${selected.length}: processando…`);
       const exitCode = await engine.exec(args);
       if (exitCode !== 0) throw new Error(`FFmpeg terminou com código ${exitCode}.`);
       const data = await engine.readFile(output);

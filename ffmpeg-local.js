@@ -23,7 +23,7 @@
 
     _ensureWorker() {
       if (this.worker) return;
-      this.worker = new Worker(`ffmpeg-worker.js?v=20260916-05`);
+      this.worker = new Worker(`ffmpeg-worker.js?v=20260916-07`);
       this.worker.onmessage = (event) => {
         const { id, type, data } = event.data || {};
         if (type === "LOG") {

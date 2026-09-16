@@ -1,4 +1,4 @@
-# Editor Automático V0.6
+# Editor Automático V0.7
 
 Editor de vídeos local no navegador, pensado para celular.
 
@@ -24,4 +24,11 @@ Editor de vídeos local no navegador, pensado para celular.
 O processamento continua sendo local no navegador. O Worker evita bloquear a interface enquanto o FFmpeg processa o vídeo.
 
 
-V0.6: após cada vídeo ser processado, o navegador inicia automaticamente o download do MP4 em vez de abrir o vídeo. Um link "Baixar novamente" fica disponível como fallback caso o Chrome bloqueie downloads automáticos.
+V0.7: após cada vídeo ser processado, o navegador inicia automaticamente o download do MP4 em vez de abrir o vídeo. Um link "Baixar novamente" fica disponível como fallback caso o Chrome bloqueie downloads automáticos.
+
+
+## V0.7
+- Barra de progresso visual em vez dos logs frame/fps/time/speed.
+- Desfoque do fundo calculado em 360×640 antes da ampliação para 1080×1920, reduzindo o custo do filtro no celular.
+- Saída H.264 em 30 fps e CRF 30 com preset ultrafast para priorizar velocidade de processamento local.
+- O vídeo final continua em 1080×1920 (9:16).
