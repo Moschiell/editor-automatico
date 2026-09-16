@@ -16,7 +16,12 @@
 
   // @ffmpeg/ffmpeg 0.12.10 is paired with @ffmpeg/core 0.12.6 in the project release.
   const FFMPEG_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd";
-  const CORE_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd";
+  const CORE_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+  let ffmpegModuleURL = null;
+  let ffmpegWorkerLoadURL = null;
+  let ffmpegCoreURL = null;
+  let ffmpegWasmURL = null;
+
 
   function setStatus(text, cls = "idle") {
     const el = $("ffmpegStatus");
@@ -53,48 +58,70 @@
 
     ffmpegLoading = true;
     setStatus("FFmpeg: carregando…", "loading");
-    setProgress("Baixando o motor de vídeo (~30 MB na primeira vez)…");
+    setProgress("Preparando o motor de vídeo (~30 MB na primeira vez)…");
 
-    let blobURLs = [];
     try {
-      const Ctor = getFFmpegCtor();
-      if (!Ctor) throw new Error("A biblioteca FFmpeg não carregou. Recarregue a página e tente novamente.");
+      // GitHub Pages não pode criar um Worker diretamente a partir do CDN.
+      // O UMD 0.12.x também precisa que o caminho do chunk 814 seja
+      // fornecido explicitamente. Fazemos o patch em memória e servimos
+      // todos os recursos como Blob URLs da mesma origem do documento.
+      if (!window.FFmpegWASM?.FFmpeg) {
+        const sourceResponse = await fetch(`${FFMPEG_BASE}/ffmpeg.js`, { cache: "force-cache" });
+        if (!sourceResponse.ok) throw new Error(`Não foi possível carregar ffmpeg.js (${sourceResponse.status}).`);
+        let source = await sourceResponse.text();
+
+        const needle = "new URL(e.p+e.u(814),e.b)";
+        if (!source.includes(needle)) {
+          throw new Error("A versão do FFmpeg mudou e o carregador não reconheceu o Worker.");
+        }
+        source = source.replace(needle, "r.workerLoadURL");
+        ffmpegModuleURL = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = ffmpegModuleURL;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error("Não foi possível inicializar a biblioteca FFmpeg."));
+          document.head.appendChild(script);
+        });
+      }
+
+      const Ctor = window.FFmpegWASM?.FFmpeg || window.FFmpeg?.FFmpeg;
+      if (!Ctor) throw new Error("A biblioteca FFmpeg não foi inicializada.");
 
       ffmpeg = new Ctor();
       ffmpeg.on("log", ({ message }) => {
         if (message && /frame=|time=|speed=|Output|Input|Error/i.test(message)) setProgress(message);
       });
       ffmpeg.on("progress", ({ progress }) => {
-        if (Number.isFinite(progress)) {
-          setProgress(`Processando… ${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%`);
-        }
+        if (Number.isFinite(progress)) setProgress(`Processando… ${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%`);
       });
 
-      // The UMD build has a separate 814.ffmpeg.js class worker. Convert it to a
-      // same-origin blob URL before Worker() is constructed. This is the key fix
-      // for GitHub Pages / CDN cross-origin Worker errors.
-      const classWorkerURL = await toBlobURL(`${FFMPEG_BASE}/814.ffmpeg.js`, "text/javascript");
-      const coreURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript");
-      const wasmURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm");
-      blobURLs.push(classWorkerURL, coreURL, wasmURL);
+      ffmpegWorkerLoadURL = await toBlobURL(`${FFMPEG_BASE}/814.ffmpeg.js`, "text/javascript");
+      ffmpegCoreURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript");
+      ffmpegWasmURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm");
 
-      await ffmpeg.load({ classWorkerURL, coreURL, wasmURL });
+      await ffmpeg.load({
+        workerLoadURL: ffmpegWorkerLoadURL,
+        coreURL: ffmpegCoreURL,
+        wasmURL: ffmpegWasmURL
+      });
+
       const fontResponse = await fetch("DejaVuSans-Bold.ttf", { cache: "force-cache" });
       if (!fontResponse.ok) throw new Error("Não foi possível carregar a fonte do texto.");
       await ffmpeg.writeFile("DejaVuSans-Bold.ttf", new Uint8Array(await fontResponse.arrayBuffer()));
       fontReady = true;
       setStatus("FFmpeg: pronto", "ok");
-      setProgress("Motor pronto. Você pode gerar o lote.", "ok");
+      setProgress("Motor pronto. Gerando vídeo…", "ok");
       return ffmpeg;
     } catch (e) {
-      console.error(e);
+      console.error("FFmpeg load error:", e);
       try { ffmpeg?.terminate(); } catch {}
       ffmpeg = null;
       setStatus("FFmpeg: erro", "error");
       setProgress(e?.message || String(e), "error");
       throw e;
     } finally {
-      // Keep the blob URLs alive while FFmpeg is running; they are released on page unload.
       ffmpegLoading = false;
       updateButton();
     }
@@ -370,6 +397,9 @@
     if (posterURL) URL.revokeObjectURL(posterURL);
     if (logoURL) URL.revokeObjectURL(logoURL);
     try { ffmpeg?.terminate(); } catch {}
+    for (const u of [ffmpegModuleURL, ffmpegWorkerLoadURL, ffmpegCoreURL, ffmpegWasmURL]) {
+      if (u) URL.revokeObjectURL(u);
+    }
   });
 
   renderQueue();
