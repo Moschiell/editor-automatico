@@ -1,20 +1,17 @@
-# Editor Automático — V0.2
+# Editor Automático — V0.2 corrigida
 
-Editor web para processar vídeos localmente no navegador, com preview 9:16 antes da geração.
+Editor web para processar vídeos locais no navegador.
 
-## O que esta versão testa
-- Preview real do primeiro vídeo selecionado.
-- Fundo ampliado/desfocado ou preto.
-- Espelhamento.
-- Velocidade 1,03x.
-- Nitidez leve.
-- Texto superior.
-- @ opcional como marca d'água dentro do vídeo.
-- Logo opcional.
-- Até 5 vídeos por lote.
-- Processamento local com FFmpeg.wasm.
+## Nesta versão
+- Seleção de 1 a 5 vídeos sem depender do FFmpeg.
+- Preview 9:16 real usando o vídeo escolhido.
+- Fundo desfocado ou preto no preview.
+- Espelho, velocidade 1,03x, nitidez, texto, @ opcional e logo no preview.
+- FFmpeg só é carregado quando o usuário toca em GERAR VÍDEOS.
+- Correção do Worker do FFmpeg no GitHub Pages usando `classWorkerURL` em Blob URL.
+- Processamento local; os vídeos não são enviados para um servidor do projeto.
 
 ## Observação
-O preview é visual e interativo no navegador; a renderização final é feita pelo FFmpeg. O editor visual com arrastar/redimensionar elementos, templates salvos, legendas automáticas e ZIP de saída ficam para etapas posteriores.
+A primeira geração baixa o motor FFmpeg (~30 MB). O processamento pode exigir bastante memória em celulares. Teste primeiro com 1 vídeo curto.
 
-O projeto não inclui recursos para burlar sistemas de detecção de plataformas.
+A implementação usa @ffmpeg/ffmpeg 0.12.10 com @ffmpeg/core 0.12.6, combinação publicada na release correspondente do projeto.
