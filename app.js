@@ -69,7 +69,9 @@
         const d = Number(duration);
         if ((!Number.isFinite(r) || r <= 0) && Number.isFinite(t) && d > 0) r = t / d;
         if (Number.isFinite(r)) {
-          r = Math.max(0, Math.min(1, r));
+          // 100% só é exibido quando o FFmpeg terminou de fato e o arquivo
+          // já foi lido. Durante o exec(), seguramos em no máximo 99%.
+          r = Math.max(0, Math.min(0.99, r));
           const label = currentProgressLabel || "Processando…";
           setProgressProgress(r, label);
         }
@@ -82,7 +84,7 @@
       await ffmpeg.writeFile("DejaVuSans-Bold.ttf", new Uint8Array(await fontResponse.arrayBuffer()));
       fontReady = true;
       setStatus("FFmpeg: pronto", "ok");
-      setProgress("Motor pronto. Gerando vídeo…", "ok");
+      setProgress("Motor pronto. Pronto para gerar.", "ok");
       return ffmpeg;
     } catch (e) {
       console.error("FFmpeg load error:", e);
@@ -189,6 +191,9 @@
     selected = files.slice(0, 5);
     renderQueue();
     if (selected[0]) setPreviewFile(selected[0]);
+    // Começa a carregar o motor em segundo plano enquanto o usuário escolhe as opções.
+    // Assim o tempo de inicialização do FFmpeg não fica somado ao processamento.
+    if (selected.length) loadFFmpeg().catch(() => {});
     updateButton();
     if (files.length > 5) setProgress("Foram selecionados mais de 5 vídeos; somente os 5 primeiros serão usados.", "warn");
     else if (selected.length) setProgress(`${selected.length} vídeo(s) selecionado(s). O FFmpeg só será carregado ao gerar.`);
@@ -271,7 +276,7 @@
       // Isso reduz bastante o trabalho do FFmpeg no celular sem alterar o enquadramento final.
       const bg = bgMode === "black"
         ? "color=c=black:s=1080x1920:r=30[bg0]"
-        : "[0:v]scale=360:640:force_original_aspect_ratio=increase,crop=360:640,gblur=sigma=7,scale=1080:1920:flags=bilinear[bg0]";
+        : "[0:v]scale=240:426:force_original_aspect_ratio=increase,crop=240:426,gblur=sigma=5,scale=1080:1920:flags=bilinear[bg0]";
       const speedVideo = speed ? "setpts=PTS/1.03," : "";
       const mirrorFilter = mirror ? "hflip," : "";
       const sharpFilter = sharpen ? "unsharp=5:5:0.35:5:5:0," : "";
@@ -306,8 +311,9 @@
         "-map", "0:a?",
         "-c:v", "libx264",
         "-preset", "ultrafast",
+        "-tune", "zerolatency",
         "-crf", "30",
-        "-r", "30",
+        "-threads", "0",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
         "-b:a", "128k"
@@ -318,9 +324,11 @@
       currentProgressLabel = `Vídeo ${idx + 1}/${selected.length}: processando…`;
       setProgressProgress(0, currentProgressLabel);
       const exitCode = await engine.exec(args, -1, duration);
-      setProgressProgress(1, `Vídeo ${idx + 1}/${selected.length}: finalizando…`);
       if (exitCode !== 0) throw new Error(`FFmpeg terminou com código ${exitCode}.`);
+      // O 100% representa conclusão real: o FFmpeg terminou e o arquivo
+      // de saída já está disponível para iniciar o download.
       const data = await engine.readFile(output);
+      setProgressProgress(1, `Vídeo ${idx + 1}/${selected.length}: concluído — iniciando download…`);
       return new Blob([data.buffer], { type: "video/mp4" });
     } finally {
       await fsDelete(input);
@@ -342,7 +350,8 @@
         const blob = await processOne(selected[i], i, engine);
         const url = URL.createObjectURL(blob);
         const name = safeName(selected[i].name);
-        setProgress(`Vídeo ${i + 1}/${selected.length}: preparando download…`);
+        // O processOne só retorna depois de marcar 100%; o download começa imediatamente.
+        setProgress(`Vídeo ${i + 1}/${selected.length}: 100% — download iniciando…`);
         // Inicia o download imediatamente. Não abre o MP4 no navegador.
         const link = document.createElement("a");
         link.href = url;

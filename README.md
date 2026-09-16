@@ -32,3 +32,14 @@ V0.7: após cada vídeo ser processado, o navegador inicia automaticamente o dow
 - Desfoque do fundo calculado em 360×640 antes da ampliação para 1080×1920, reduzindo o custo do filtro no celular.
 - Saída H.264 em 30 fps e CRF 30 com preset ultrafast para priorizar velocidade de processamento local.
 - O vídeo final continua em 1080×1920 (9:16).
+
+
+## Progresso V0.10
+100% só aparece quando o FFmpeg terminou e o arquivo de saída foi lido. O download automático começa imediatamente depois. Durante o processamento, a barra fica em no máximo 99%, mesmo que o evento interno do FFmpeg informe ratio=1 antes da conclusão completa.
+
+
+## V0.10 — desempenho
+- Pré-carrega o motor FFmpeg ao selecionar o primeiro vídeo, reduzindo a espera ao clicar em gerar.
+- Reduz a resolução intermediária do fundo desfocado para diminuir o custo do filtro.
+- Evita forçar 30 FPS quando não é necessário, preservando o FPS da origem.
+- Mantém uma única passagem de filtros e uma única codificação por vídeo.
