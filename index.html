@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Editor Automático — V0.3</title>
+<link rel="stylesheet" href="style.css?v=20260916-03">
+</head>
+<body>
+<main class="app">
+<header>
+  <div><h1>Editor Automático</h1><p>Preview real • até 5 vídeos por lote</p></div>
+  <span id="ffmpegStatus" class="status idle">FFmpeg: pronto para gerar</span>
+</header>
+
+<section class="card preview-card">
+  <div class="section-head">
+    <div><h2>Preview</h2><p class="hint">Selecione um vídeo para visualizar o enquadramento antes de gerar.</p></div>
+    <span id="previewBadge" class="badge">Aguardando vídeo</span>
+  </div>
+  <div class="preview-wrap">
+    <div id="preview" class="preview preview-blur">
+      <video id="previewVideo" playsinline muted loop></video>
+      <div id="previewHeadline" class="pv-headline"></div>
+      <img id="previewLogo" class="pv-logo" alt="">
+      <div id="previewHandle" class="pv-handle"></div>
+      <div id="previewEmpty" class="preview-empty">Selecione um vídeo<br><small>O preview aparecerá aqui em 9:16</small></div>
+    </div>
+  </div>
+  <div class="preview-actions">
+    <button id="previewPlay" class="secondary" disabled>▶ Reproduzir preview</button>
+    <span id="previewTime">00:00</span>
+  </div>
+</section>
+
+<section class="card">
+  <h2>1. Vídeos</h2>
+  <input id="files" type="file" accept="video/*,.mp4,.mov,.m4v,.webm,.mkv" multiple>
+  <p class="hint">Escolha de 1 a 5 vídeos. O primeiro selecionado aparece no preview.</p>
+  <div id="queue" class="queue"></div>
+</section>
+
+<section class="card">
+  <h2>2. Template</h2>
+  <label>Nome do template<input id="templateName" value="Notícias 01" maxlength="50"></label>
+  <div class="grid">
+    <label>Proporção<select id="ratio"><option value="916">9:16 — 1080×1920</option></select></label>
+    <label>Fundo<select id="background"><option value="blur">Vídeo ampliado + desfoque</option><option value="black">Preto</option></select></label>
+  </div>
+  <label class="check"><input id="mirror" type="checkbox"> Espelhar vídeo</label>
+  <label class="check"><input id="speed" type="checkbox"> Velocidade 1,03×</label>
+  <label class="check"><input id="sharpen" type="checkbox"> Nitidez leve</label>
+  <label>Texto superior<input id="headline" placeholder="EX.: VEJA O QUE ACONTECEU" maxlength="100"></label>
+  <label class="check"><input id="showHandle" type="checkbox"> Adicionar @ no vídeo</label>
+  <label>@ do perfil<input id="handle" placeholder="@seuperfil" maxlength="50" disabled></label>
+  <label>Logo<input id="logo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+  <p class="hint">O @ é uma marca d'água opcional gravada no vídeo. Não é uma marcação do TikTok.</p>
+</section>
+
+<section class="card">
+  <h2>3. Gerar</h2>
+  <button id="process" disabled>GERAR VÍDEOS</button>
+  <div id="progress" class="progress"></div>
+  <div id="outputs"></div>
+</section>
+</main>
+
+<!-- 0.11.x is used intentionally here. Its loader handles the core/worker path itself,
+     avoiding the cross-origin 814.ffmpeg.js Worker failure of the 0.12 UMD build. -->
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+<script src="app-v03.js?v=20260916-03"></script>
+</body>
+</html>
