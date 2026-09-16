@@ -1,35 +1,20 @@
-# Editor Automático — v0.1
+# Editor Automático — V0.2
 
-Primeira versão do editor em lote pensado para uso pelo celular.
+Editor web para processar vídeos localmente no navegador, com preview 9:16 antes da geração.
 
-## O que já faz
-- Seleciona até 5 vídeos por lote.
-- Processa no navegador usando FFmpeg.wasm.
-- Não envia os vídeos para um servidor.
-- Converte para 9:16 (1080x1920).
-- Cria fundo ampliado e desfocado.
-- Mantém o vídeo original centralizado.
-- Espelhamento opcional.
-- Velocidade opcional 1,03x.
-- Nitidez leve opcional.
-- Gera MP4 para download.
-
-## Próximas versões
-- Template visual configurável.
-- Cabeçalho e @ sobre o vídeo.
-- Logo.
-- Posições/tamanhos ajustáveis.
-- Legendas automáticas.
-- Presets salvos.
-- ZIP com todos os resultados.
-- Controle de quantidade por lote.
-
-## Base
-A arquitetura usa FFmpeg.wasm, um port de FFmpeg para WebAssembly que permite processamento no navegador.
-Referência: https://github.com/ffmpegwasm/ffmpeg.wasm
-
-Também foi usada como referência a arquitetura open-source do ffmpeg-webCLI:
-https://github.com/tejaswigowda/ffmpeg-webCLI
+## O que esta versão testa
+- Preview real do primeiro vídeo selecionado.
+- Fundo ampliado/desfocado ou preto.
+- Espelhamento.
+- Velocidade 1,03x.
+- Nitidez leve.
+- Texto superior.
+- @ opcional como marca d'água dentro do vídeo.
+- Logo opcional.
+- Até 5 vídeos por lote.
+- Processamento local com FFmpeg.wasm.
 
 ## Observação
-Esta versão é um protótipo de edição/formatação. Não inclui mecanismos para ocultar deliberadamente a origem de conteúdo de terceiros ou burlar sistemas de detecção.
+O preview é visual e interativo no navegador; a renderização final é feita pelo FFmpeg. O editor visual com arrastar/redimensionar elementos, templates salvos, legendas automáticas e ZIP de saída ficam para etapas posteriores.
+
+O projeto não inclui recursos para burlar sistemas de detecção de plataformas.
