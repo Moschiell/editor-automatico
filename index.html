@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Editor Automático — v0.1</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Editor Automático</h1>
+        <p>Processamento local • lote de até 5 vídeos</p>
+      </div>
+      <span id="ffmpegStatus" class="status">FFmpeg: carregando…</span>
+    </header>
+
+    <section class="card">
+      <h2>1. Vídeos</h2>
+      <input id="files" type="file" accept="video/*" multiple>
+      <p class="hint">Selecione até 5 vídeos por lote.</p>
+      <div id="queue" class="queue"></div>
+    </section>
+
+    <section class="card">
+      <h2>2. Seu template</h2>
+
+      <label>Nome do template
+        <input id="templateName" value="Notícias 01">
+      </label>
+
+      <div class="grid">
+        <label>Proporção
+          <select id="ratio">
+            <option value="916">9:16 — 1080×1920</option>
+          </select>
+        </label>
+
+        <label>Fundo
+          <select id="background">
+            <option value="blur">Vídeo ampliado + desfoque</option>
+            <option value="black">Preto</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="check"><input id="mirror" type="checkbox"> Espelhar horizontalmente</label>
+      <label class="check"><input id="speed" type="checkbox"> Velocidade 1,03×</label>
+      <label class="check"><input id="sharpen" type="checkbox"> Nitidez leve</label>
+
+      <label>Texto superior (opcional)
+        <input id="headline" placeholder="EX.: VEJA O QUE ACONTECEU">
+      </label>
+
+      <label>@ do perfil (opcional)
+        <input id="handle" placeholder="@seuperfil">
+      </label>
+
+      <label>Imagem/logo (opcional)
+        <input id="logo" type="file" accept="image/png,image/jpeg,image/webp">
+      </label>
+
+      <p class="hint">Nesta primeira versão, texto e logo ficam como elementos fixos do template. Depois podemos adicionar estilos, posições e legendas automáticas.</p>
+    </section>
+
+    <section class="card">
+      <h2>3. Processar</h2>
+      <button id="process" disabled>GERAR VÍDEOS</button>
+      <div id="progress" class="progress"></div>
+      <div id="outputs"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
