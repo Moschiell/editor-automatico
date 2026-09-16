@@ -16,11 +16,8 @@
 
   // @ffmpeg/ffmpeg 0.12.10 is paired with @ffmpeg/core 0.12.6 in the project release.
   const FFMPEG_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd";
-  const CORE_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
-  let ffmpegModuleURL = null;
+  const CORE_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd";
   let ffmpegWorkerLoadURL = null;
-  let ffmpegCoreURL = null;
-  let ffmpegWasmURL = null;
 
 
   function setStatus(text, cls = "idle") {
@@ -45,10 +42,6 @@
     return URL.createObjectURL(new Blob([blob], { type: mime }));
   }
 
-  function getFFmpegCtor() {
-    return window.FFmpegWASM?.FFmpeg || window.FFmpeg?.FFmpeg || null;
-  }
-
   async function loadFFmpeg() {
     if (ffmpeg?.loaded) return ffmpeg;
     if (ffmpegLoading) {
@@ -61,34 +54,15 @@
     setProgress("Preparando o motor de vídeo (~30 MB na primeira vez)…");
 
     try {
-      // GitHub Pages não pode criar um Worker diretamente a partir do CDN.
-      // O UMD 0.12.x também precisa que o caminho do chunk 814 seja
-      // fornecido explicitamente. Fazemos o patch em memória e servimos
-      // todos os recursos como Blob URLs da mesma origem do documento.
+      // IMPORTANTE: não transformamos o ffmpeg-core.js em Blob URL.
+      // No UMD 0.12.x isso pode causar "failed to import ffmpeg-core.js"
+      // dentro do worker. O worker do wrapper é o único recurso que precisa
+      // virar Blob para ficar same-origin no GitHub Pages.
       if (!window.FFmpegWASM?.FFmpeg) {
-        const sourceResponse = await fetch(`${FFMPEG_BASE}/ffmpeg.js`, { cache: "force-cache" });
-        if (!sourceResponse.ok) throw new Error(`Não foi possível carregar ffmpeg.js (${sourceResponse.status}).`);
-        let source = await sourceResponse.text();
-
-        const needle = "new URL(e.p+e.u(814),e.b)";
-        if (!source.includes(needle)) {
-          throw new Error("A versão do FFmpeg mudou e o carregador não reconheceu o Worker.");
-        }
-        source = source.replace(needle, "r.workerLoadURL");
-        ffmpegModuleURL = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
-
-        await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = ffmpegModuleURL;
-          script.onload = resolve;
-          script.onerror = () => reject(new Error("Não foi possível inicializar a biblioteca FFmpeg."));
-          document.head.appendChild(script);
-        });
+        throw new Error("A biblioteca FFmpeg não foi carregada.");
       }
 
-      const Ctor = window.FFmpegWASM?.FFmpeg || window.FFmpeg?.FFmpeg;
-      if (!Ctor) throw new Error("A biblioteca FFmpeg não foi inicializada.");
-
+      const Ctor = window.FFmpegWASM.FFmpeg;
       ffmpeg = new Ctor();
       ffmpeg.on("log", ({ message }) => {
         if (message && /frame=|time=|speed=|Output|Input|Error/i.test(message)) setProgress(message);
@@ -97,14 +71,15 @@
         if (Number.isFinite(progress)) setProgress(`Processando… ${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%`);
       });
 
+      // O wrapper FFmpeg roda no worker. Criamos somente esse worker como Blob
+      // same-origin. O core e o WASM ficam em URLs HTTP normais do CDN, onde
+      // o próprio Emscripten consegue resolver os recursos relativos.
       ffmpegWorkerLoadURL = await toBlobURL(`${FFMPEG_BASE}/814.ffmpeg.js`, "text/javascript");
-      ffmpegCoreURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript");
-      ffmpegWasmURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm");
 
       await ffmpeg.load({
-        workerLoadURL: ffmpegWorkerLoadURL,
-        coreURL: ffmpegCoreURL,
-        wasmURL: ffmpegWasmURL
+        classWorkerURL: ffmpegWorkerLoadURL,
+        coreURL: `${CORE_BASE}/ffmpeg-core.js`,
+        wasmURL: `${CORE_BASE}/ffmpeg-core.wasm`
       });
 
       const fontResponse = await fetch("DejaVuSans-Bold.ttf", { cache: "force-cache" });
@@ -397,7 +372,7 @@
     if (posterURL) URL.revokeObjectURL(posterURL);
     if (logoURL) URL.revokeObjectURL(logoURL);
     try { ffmpeg?.terminate(); } catch {}
-    for (const u of [ffmpegModuleURL, ffmpegWorkerLoadURL, ffmpegCoreURL, ffmpegWasmURL]) {
+    for (const u of [ffmpegWorkerLoadURL]) {
       if (u) URL.revokeObjectURL(u);
     }
   });
