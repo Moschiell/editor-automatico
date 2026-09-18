@@ -1,15 +1,2 @@
-EDITOR AUTOMÁTICO — FRONTEND RENDER V1
-
-Substitui o processamento FFmpeg.wasm do celular por envio ao Render.
-
-Backend:
-https://editor-automatico-ffmpeg-server.onrender.com/
-
-Endpoints esperados:
-GET /health
-POST /process
-
-Campos enviados:
-video, headline, handle, mirror, speed
-
-No GitHub Pages, substitua index.html, app.js e style.css.
+# Editor Automático — Frontend Render V2
+Frontend estático para GitHub Pages. Envia até 5 vídeos por lote ao servidor Render usando /api/jobs, acompanha o processamento e mostra links de download. O FFmpeg roda no servidor, não no celular.
