@@ -1,43 +1,8 @@
-const API="https://editor-automatico-ffmpeg-server.onrender.com";
-const $=id=>document.getElementById(id);
-let files=[],previewUrl=null,pollTimer=null;
-function status(t,p){$("status").textContent=t;if(p!==undefined)$("progress").value=p}
-$("videos").onchange=e=>{files=[...e.target.files].slice(0,5);$("info").textContent=files.length+" vídeo(s) selecionado(s).";if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=files[0]?URL.createObjectURL(files[0]):null;$("preview").src=previewUrl||""};
-async function waitJob(id,total){
-  while(true){
-    const r=await fetch(API+"/api/jobs/"+encodeURIComponent(id),{cache:"no-store"});
-    if(!r.ok)throw Error("Não foi possível consultar o lote ("+r.status+")");
-    const j=await r.json();
-    const done=j.completed||0;
-    status(j.status==="processing"?`Processando ${done}/${total}...`:`Finalizando ${done}/${total}...`,Math.round(done/total*100));
-    if(j.videos){
-      for(const v of j.videos){
-        if(v.status==="done" && !document.querySelector(`[data-vid="${v.id}"]`)){
-          const x=document.createElement("div");x.className="result";x.dataset.vid=v.id;
-          const a=document.createElement("a");a.href=API+v.downloadUrl;a.textContent="BAIXAR MP4";a.setAttribute("download","");
-          x.append(document.createTextNode(v.name+" — "),a);$("results").appendChild(x);
-        }
-      }
-    }
-    if(j.status!=="processing"){
-      if(j.videos?.some(v=>v.status==="error"))throw Error("Um ou mais vídeos falharam no servidor.");
-      status("Lote concluído.",100);return;
-    }
-    await new Promise(r=>setTimeout(r,1500));
-  }
-}
-$("generate").onclick=async()=>{
-  if(!files.length)return alert("Selecione pelo menos 1 vídeo.");
-  $("generate").disabled=true;$("results").innerHTML="";status("Conectando ao servidor...",0);
-  try{
-    const h=await fetch(API+"/health",{cache:"no-store"});
-    if(!h.ok)throw Error("Servidor /health indisponível");
-    const f=new FormData();
-    for(const file of files)f.append("videos",file,file.name);
-    f.append("headline",$("headline").value);f.append("handle",$("handle").value);f.append("mirror",$("mirror").checked?"true":"false");f.append("speed",$("speed").value);
-    status("Enviando vídeos ao servidor...",0);
-    const r=await fetch(API+"/api/jobs",{method:"POST",body:f});
-    if(!r.ok){let msg="Servidor respondeu "+r.status;try{const e=await r.json();if(e.error)msg=e.error}catch{}throw Error(msg)}
-    const j=await r.json();await waitJob(j.id,files.length);
-  }catch(e){status("Erro: "+e.message,0)}finally{$("generate").disabled=false}
-};
+const API='https://editor-automatico-ffmpeg-server.onrender.com';const $=id=>document.getElementById(id);let files=[],previewUrl=null,wmUrl=null;
+function setStatus(t,p){$('status').textContent=t;if(p!==undefined)$('progress').value=p}
+function updatePreview(){ $('previewTitle').textContent=$('headline').value; $('previewCaption').textContent=$('caption').value; $('previewHandle').textContent=$('handle').value; $('previewTitle').style.display=$('headline').value?'block':'none';$('previewCaption').style.display=$('caption').value?'block':'none';$('previewHandle').style.display=$('handle').value?'block':'none';$('previewWatermark').style.display=wmUrl?'block':'none';if(wmUrl)$('previewWatermark').src=wmUrl;$('logoSizeValue').textContent=$('logoSize').value;$('previewWatermark').style.width=$('logoSize').value+'px'}
+['headline','caption','handle','template','logoSize'].forEach(id=>$(id).addEventListener('input',updatePreview));
+$('videos').onchange=e=>{files=[...e.target.files].slice(0,5);$('info').textContent=files.length+' vídeo(s) selecionado(s).';if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=files[0]?URL.createObjectURL(files[0]):null;$('preview').src=previewUrl||''};
+$('watermark').onchange=e=>{if(wmUrl)URL.revokeObjectURL(wmUrl);wmUrl=e.target.files[0]?URL.createObjectURL(e.target.files[0]):null;updatePreview()};updatePreview();
+async function waitJob(id,total){while(true){const r=await fetch(API+'/api/jobs/'+encodeURIComponent(id),{cache:'no-store'});if(!r.ok)throw Error('Não foi possível consultar o lote ('+r.status+')');const j=await r.json();const done=j.completed||0;const active=(j.videos||[]).filter(v=>v.status==='processing').length;setStatus(j.status==='processing'?`Processando ${done}/${total}${active?' — vídeo em processamento':''}:`Finalizando ${done}/${total}...`,Math.round(done/total*100));for(const v of j.videos||[])if(v.status==='done'&&!document.querySelector(`[data-vid="${v.id}"]`)){const x=document.createElement('div');x.className='result';x.dataset.vid=v.id;x.innerHTML=`<span>${v.name}</span> <a href="${API+v.downloadUrl}" download>BAIXAR MP4</a>`;$('results').appendChild(x)}if(j.status!=='processing'){if(j.videos?.some(v=>v.status==='error')){const bad=j.videos.filter(v=>v.status==='error').map(v=>v.error).join('\n');throw Error(bad||'Um ou mais vídeos falharam no servidor.')}setStatus('Lote concluído.',100);return}await new Promise(r=>setTimeout(r,1200))}}
+$('generate').onclick=async()=>{if(!files.length)return alert('Selecione pelo menos 1 vídeo.');$('generate').disabled=true;$('results').innerHTML='';setStatus('Conectando ao servidor...',0);try{const h=await fetch(API+'/health',{cache:'no-store'});if(!h.ok)throw Error('Servidor indisponível');const f=new FormData();files.forEach(file=>f.append('videos',file,file.name));const wm=$('watermark').files[0];if(wm)f.append('watermark',wm,wm.name);['template','headline','caption','handle','logoSize','speed'].forEach(id=>f.append(id,$(id).value));f.append('mirror',$('mirror').checked?'true':'false');setStatus('Enviando vídeos ao servidor...',0);const r=await fetch(API+'/api/jobs',{method:'POST',body:f});if(!r.ok){let msg='Servidor respondeu '+r.status;try{const e=await r.json();if(e.error)msg=e.error}catch{}throw Error(msg)}const j=await r.json();await waitJob(j.id,files.length)}catch(e){setStatus('Erro: '+e.message,0)}finally{$('generate').disabled=false}};
