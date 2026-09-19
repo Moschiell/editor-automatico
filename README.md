@@ -1,2 +1,8 @@
-# Editor Automático — Frontend Render V2
-Frontend estático para GitHub Pages. Envia até 5 vídeos por lote ao servidor Render usando /api/jobs, acompanha o processamento e mostra links de download. O FFmpeg roda no servidor, não no celular.
+# Editor Automático V7.6
+
+Editor mobile com preview, template, título, legenda, @, marca d'água opcional, espelhamento e velocidade.
+
+O upload de vídeo voltou deliberadamente ao mesmo padrão multipart usado na V6 (`videos`) que já foi comprovado no projeto. A marca d'água é enviada separadamente como Data URL em `watermarkData`, para não interferir no upload dos vídeos.
+
+## GitHub Pages
+Substitua `index.html`, `app.js` e `style.css` no repositório do editor.
