@@ -1,1 +1,193 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Editor Automático V7.6</title><link rel="stylesheet" href="style.css"></head><body><main><header><h1>Editor Automático</h1><p>Template • legenda • marca d'água • processamento no servidor</p></header><section class="grid"><div class="panel previewPanel"><h2>Prévia</h2><div class="phone"><video id="preview" controls playsinline muted></video><div id="previewTitle"></div><div id="previewCaption"></div><div id="previewHandle"></div><img id="previewWatermark"></div><div id="info">Nenhum vídeo selecionado.</div><input id="videos" type="file" accept="video/*" multiple></div><div class="panel"><h2>Template</h2><select id="template"><option value="news-card">Notícias — cartão</option><option value="clean">Limpo</option><option value="headline">Manchete</option></select><label>Título<input id="headline" placeholder="Ex.: NOTÍCIA DE HOJE"></label><label>Legenda<textarea id="caption" rows="4" placeholder="Digite a legenda que ficará no vídeo"></textarea></label><label>@ usuário<input id="handle" placeholder="@seuperfil"></label><label>Marca d'água <input id="watermark" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Tamanho da marca <input id="logoSize" type="range" min="40" max="260" value="120"><span id="logoSizeValue">120</span></label><label class="check"><input id="mirror" type="checkbox"> Espelhar vídeo</label><label>Velocidade<select id="speed"><option value="1">1.00x</option><option value="1.03">1.03x</option><option value="1.05">1.05x</option></select></label><button id="generate" type="button">GERAR VÍDEOS</button><p id="status">Aguardando.</p><progress id="progress" value="0" max="100"></progress></div></section><section class="panel"><h2>Resultados</h2><div id="results"></div></section></main><script src="app.js?v=7.6"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d12">
+  <title>Editor Automático</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">EA</div>
+        <div>
+          <h1>Editor Automático</h1>
+          <p>Transforme seus vídeos em poucos passos</p>
+        </div>
+      </div>
+      <button class="icon-btn" type="button" aria-label="Configurações">⚙</button>
+    </header>
+
+    <nav class="steps" aria-label="Etapas do editor">
+      <div class="step active"><span>1</span><b>Vídeos</b></div>
+      <div class="step-line"></div>
+      <div class="step"><span>2</span><b>Template</b></div>
+      <div class="step-line"></div>
+      <div class="step"><span>3</span><b>Estilo</b></div>
+      <div class="step-line"></div>
+      <div class="step"><span>4</span><b>Gerar</b></div>
+    </nav>
+
+    <section class="hero-card">
+      <div>
+        <span class="eyebrow">NOVO PROJETO</span>
+        <h2>Comece pelos seus vídeos</h2>
+        <p>Selecione até 5 vídeos. Na próxima etapa você poderá aplicar o mesmo template a todos eles.</p>
+      </div>
+      <div class="hero-badge">9:16</div>
+    </section>
+
+    <section class="workspace">
+      <div class="panel upload-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="section-number">01</span>
+            <h3>Seus vídeos</h3>
+          </div>
+          <span class="limit-badge">ATÉ 5</span>
+        </div>
+
+        <label class="upload-zone" for="videos">
+          <span class="upload-icon">＋</span>
+          <strong>Adicionar vídeos</strong>
+          <small>Toque aqui para escolher da galeria</small>
+          <small>MP4, MOV, WEBM e outros formatos de vídeo</small>
+        </label>
+        <input id="videos" class="visually-hidden" type="file" accept="video/*" multiple>
+
+        <div class="selection-head">
+          <span>Selecionados</span>
+          <span id="info">Nenhum vídeo selecionado.</span>
+        </div>
+        <div id="videoList" class="video-list">
+          <div class="empty-state">
+            <span>🎬</span>
+            <p>Nenhum vídeo adicionado</p>
+            <small>Seus arquivos aparecerão aqui.</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel preview-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="section-number">PRÉVIA</span>
+            <h3>Visualização</h3>
+          </div>
+          <span class="live-badge"><i></i> AO VIVO</span>
+        </div>
+        <div class="preview-stage">
+          <div class="phone">
+            <video id="preview" controls playsinline muted></video>
+            <div class="preview-grid"></div>
+            <div id="previewTitle"></div>
+            <div id="previewCaption"></div>
+            <div id="previewHandle"></div>
+            <img id="previewWatermark" alt="Marca d'água">
+            <div class="preview-placeholder">Adicione um vídeo<br><span>para visualizar</span></div>
+          </div>
+        </div>
+        <div class="preview-meta">
+          <span>Formato <b>9:16</b></span>
+          <span>Visualização do primeiro vídeo</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel editor-panel">
+      <div class="panel-heading large-heading">
+        <div>
+          <span class="section-number">02</span>
+          <h3>Template e estilo</h3>
+        </div>
+        <span class="coming-badge">EDITOR</span>
+      </div>
+      <p class="section-description">Escolha a estrutura visual que será aplicada aos vídeos. Nesta versão, os controles atuais continuam disponíveis enquanto construímos o editor de templates por imagem.</p>
+
+      <div class="template-strip">
+        <label class="field template-field">
+          <span>Template</span>
+          <select id="template">
+            <option value="news-card">Notícias — cartão</option>
+            <option value="clean">Limpo</option>
+            <option value="headline">Manchete</option>
+          </select>
+        </label>
+        <div class="template-future">
+          <span>＋</span>
+          <div><b>Seu template</b><small>Em breve: enviar uma imagem de referência</small></div>
+        </div>
+      </div>
+
+      <div class="fields-grid">
+        <label class="field"><span>Título</span><input id="headline" placeholder="Ex.: NOTÍCIA DE HOJE"></label>
+        <label class="field"><span>@ usuário</span><input id="handle" placeholder="@seuperfil"></label>
+      </div>
+      <label class="field"><span>Legenda</span><textarea id="caption" rows="3" placeholder="Digite a legenda que ficará no vídeo"></textarea></label>
+
+      <div class="fields-grid compact">
+        <label class="field"><span>Marca d'água</span><input id="watermark" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <label class="field"><span>Tamanho da marca <b id="logoSizeValue">120</b></span><input id="logoSize" type="range" min="40" max="260" value="120"></label>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle"><input id="mirror" type="checkbox"><span class="toggle-ui"></span><span>Espelhar vídeo</span></label>
+        <label class="field speed-field"><span>Velocidade</span><select id="speed"><option value="1">1.00x</option><option value="1.03">1.03x</option><option value="1.05">1.05x</option></select></label>
+      </div>
+    </section>
+
+    <section class="action-card">
+      <div>
+        <span class="eyebrow">03 • FINALIZAR</span>
+        <h3>Pronto para gerar?</h3>
+        <p>O processamento acontece no servidor e o MP4 ficará disponível para baixar aqui.</p>
+      </div>
+      <button id="generate" class="generate-btn" type="button"><span>GERAR VÍDEOS</span><b>→</b></button>
+      <div class="status-wrap">
+        <p id="status">Aguardando.</p>
+        <progress id="progress" value="0" max="100"></progress>
+      </div>
+    </section>
+
+    <section class="panel results-panel">
+      <div class="panel-heading">
+        <div><span class="section-number">04</span><h3>Resultados</h3></div>
+      </div>
+      <div id="results" class="results-list">
+        <div class="empty-results"><span>⬇</span><p>Seus vídeos finalizados aparecerão aqui.</p></div>
+      </div>
+    </section>
+
+    <footer>Editor Automático • processamento FFmpeg no servidor</footer>
+  </main>
+  <script src="app.js?v=7.6-ui1"></script>
+  <script>
+    // Camada visual da etapa 1: não altera o envio, processamento ou download.
+    const videoInput=document.getElementById('videos');
+    const videoList=document.getElementById('videoList');
+    const previewVideo=document.getElementById('preview');
+    const previewPlaceholder=document.querySelector('.preview-placeholder');
+    videoInput.addEventListener('change',()=>{
+      const files=[...videoInput.files].slice(0,5);
+      videoList.innerHTML='';
+      if(!files.length){
+        videoList.innerHTML='<div class="empty-state"><span>🎬</span><p>Nenhum vídeo adicionado</p><small>Seus arquivos aparecerão aqui.</small></div>';
+        previewPlaceholder.style.display='flex';
+        return;
+      }
+      files.forEach((file,index)=>{
+        const row=document.createElement('div'); row.className='video-item';
+        const thumb=document.createElement('div'); thumb.className='video-thumb'; thumb.textContent='▶';
+        const info=document.createElement('div'); info.className='video-item-info';
+        const name=document.createElement('strong'); name.textContent=file.name;
+        const size=document.createElement('small'); size.textContent=`${(file.size/1024/1024).toFixed(1)} MB • vídeo ${index+1}`;
+        info.append(name,size); row.append(thumb,info);
+        videoList.append(row);
+      });
+      previewPlaceholder.style.display='none';
+    });
+  </script>
+</body>
+</html>
