@@ -14,3 +14,6 @@
 .template-reference-info b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.template-reference-info small{font-size:9px;color:#737d8d}
 .mini-btn{align-self:flex-start;border:1px solid #343c49;background:#ffffff07;color:#bdb6ff;border-radius:8px;padding:6px 9px;font-size:9px;font-weight:800;cursor:pointer}
 .mini-btn:hover{background:#7c5cff14;border-color:#6753c8}
+/* V7.9 — composição real do template na prévia. */
+.preview-template-overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:5;pointer-events:none}
+.phone video.template-active{object-fit:cover}

@@ -81,6 +81,7 @@
         <div class="preview-stage">
           <div class="phone">
             <video id="preview" controls playsinline muted></video>
+            <img id="previewTemplateOverlay" class="preview-template-overlay" alt="Template aplicado à prévia" hidden>
             <div class="preview-grid"></div>
             <div id="previewTitle"></div>
             <div id="previewCaption"></div>
@@ -173,7 +174,7 @@
 
     <footer>Editor Automático • processamento FFmpeg no servidor</footer>
   </main>
-  <script src="app.js?v=7.6-ui1"></script>
+  <script src="app.js?v=7.9-template1"></script>
   <script>
     // Camada visual da etapa 1: não altera o envio, processamento ou download.
     const videoInput=document.getElementById('videos');
@@ -201,40 +202,5 @@
     });
   </script>
 
-  <script>
-    // Etapa 2 — referência visual do template. Não altera upload, Render, FFmpeg ou download.
-    const templateInput=document.getElementById('templateImage');
-    const templateCard=document.getElementById('templateReferenceCard');
-    const templateUpload=templateCard.querySelector('.template-upload');
-    const templatePreview=document.getElementById('templateReferencePreview');
-    const templateImg=document.getElementById('templateImagePreview');
-    const templateName=document.getElementById('templateImageName');
-    const templateMeta=document.getElementById('templateImageMeta');
-    const templatePreviewMeta=document.getElementById('templatePreviewMeta');
-    const removeTemplate=document.getElementById('removeTemplate');
-    let templateUrl=null;
-    templateInput.addEventListener('change',()=>{
-      const file=templateInput.files && templateInput.files[0];
-      if(!file)return;
-      if(templateUrl)URL.revokeObjectURL(templateUrl);
-      templateUrl=URL.createObjectURL(file);
-      templateImg.src=templateUrl;
-      templateName.textContent=file.name;
-      templateMeta.textContent=`${(file.size/1024).toFixed(0)} KB • referência visual`;
-      templateUpload.hidden=true;
-      templatePreview.hidden=false;
-      templatePreviewMeta.textContent='Template de referência selecionado';
-      templateImg.onload=()=>{
-        const w=templateImg.naturalWidth,h=templateImg.naturalHeight;
-        templateMeta.textContent=`${w} × ${h}px • referência visual`;
-      };
-    });
-    removeTemplate.addEventListener('click',()=>{
-      if(templateUrl)URL.revokeObjectURL(templateUrl);
-      templateUrl=null; templateInput.value=''; templateImg.removeAttribute('src');
-      templateUpload.hidden=false; templatePreview.hidden=true;
-      templatePreviewMeta.textContent='Sem template selecionado';
-    });
-  </script>
 </body>
 </html>
